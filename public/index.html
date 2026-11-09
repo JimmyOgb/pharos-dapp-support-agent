@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pharos dApp Support Agent — Zero-Simulation Transaction Debugger</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-badge">PHAROS AGENT ARENA</div>
+        <h1 class="brand-title">dApp Support Agent</h1>
+        <p class="brand-subtitle">
+          Plain-language failure diagnostics powered by the official <strong>Chain MCP</strong>. Zero simulation.
+        </p>
+      </div>
+      <div class="header-meta">
+        <div class="network-pill active">
+          <span class="status-dot online"></span>
+          <span id="header-network-label">Pharos Pacific Mainnet</span>
+          <span class="chain-id-chip">Chain 1672</span>
+        </div>
+        <div class="mcp-status-pill">
+          <span class="mcp-icon">⚡</span>
+          <span>mcp.pharos.xyz/mcp</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Interactive Input Section -->
+    <section class="card input-card">
+      <form id="diagnose-form" class="diagnose-form">
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="tx-hash-input" class="form-label">
+              <span>Transaction Hash</span>
+              <span class="label-hint">32-byte 0x-prefixed hash</span>
+            </label>
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="tx-hash-input"
+                name="txHash"
+                placeholder="0x..."
+                autocomplete="off"
+                spellcheck="false"
+                required
+              />
+              <button type="button" id="clear-btn" class="btn-clear" title="Clear input">✕</button>
+            </div>
+          </div>
+
+          <div class="form-group flex-1">
+            <label for="network-select" class="form-label">Pharos Network</label>
+            <select id="network-select" name="network">
+              <option value="pacific" selected>Pharos Pacific Mainnet (1672)</option>
+              <option value="atlantic">Pharos Atlantic Testnet (688689)</option>
+            </select>
+          </div>
+
+          <div class="form-group form-action">
+            <button type="submit" id="submit-btn" class="btn-primary">
+              <span class="btn-icon">🔍</span>
+              <span id="btn-text">Diagnose Transaction</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Preset Test Pills for Reviewers -->
+        <div class="presets-section">
+          <span class="presets-label">Demonstrated Genuine Failed Transactions:</span>
+          <div class="presets-grid">
+            <button type="button" class="preset-pill" data-hash="0x0b476df1d26079224c1d37e64d7f9506c906f70671525cbed317a4816e785d4e" data-network="pacific" data-type="Slippage Exceeded">
+              <span class="pill-badge slippage">SLIPPAGE</span>
+              <span class="pill-hash">0x0b47...5d4e</span>
+              <span class="pill-desc">DEX swap price slippage</span>
+            </button>
+
+            <button type="button" class="preset-pill" data-hash="0x40cf7e708148a3e75f98a77138b6a9560258d91c96ced246cfb4dbfd01338c52" data-network="pacific" data-type="Contract Assertion Revert">
+              <span class="pill-badge revert">REVERT STRING</span>
+              <span class="pill-hash">0x40cf...8c52</span>
+              <span class="pill-desc">"succeeded to fail"</span>
+            </button>
+
+            <button type="button" class="preset-pill" data-hash="0x8ebbdfaf1ce0b3a498936ba1c73307d6b157264571111a803e69947ae219a349" data-network="pacific" data-type="Custom Error Revert">
+              <span class="pill-badge custom">CUSTOM ERROR</span>
+              <span class="pill-hash">0x8ebb...a349</span>
+              <span class="pill-desc">Selector 0x2c19b8b8</span>
+            </button>
+
+            <button type="button" class="preset-pill" data-hash="0xc87cecbefba3ebe8059063a24e135f4e24ddef9afdf5f524c13aa4f5022c3e48" data-network="pacific" data-type="Pool Reserve Revert">
+              <span class="pill-badge pool">POOL LIMIT</span>
+              <span class="pill-hash">0xc87c...3e48</span>
+              <span class="pill-desc">Revert string "SPL0"</span>
+            </button>
+
+            <button type="button" class="preset-pill" data-hash="0xb32c2408a85fdb64453c682fe7e76cc27f0cc481308ca1b673878550e48abd6e" data-network="pacific" data-type="Empty Revert">
+              <span class="pill-badge empty">EMPTY REVERT</span>
+              <span class="pill-hash">0xb32c...bd6e</span>
+              <span class="pill-desc">Revert without message</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- Progress / Loading State -->
+    <div id="loading-state" class="card loading-card hidden">
+      <div class="spinner"></div>
+      <div class="loading-content">
+        <h3 id="loading-step-title">Connecting to Chain MCP...</h3>
+        <p id="loading-step-desc">Querying mcp.pharos.xyz tools (get_transaction, get_transaction_receipt)...</p>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error-state" class="card error-card hidden">
+      <div class="error-icon">⚠️</div>
+      <div class="error-content">
+        <h3 id="error-title">Diagnostic Error</h3>
+        <p id="error-message">Unable to retrieve transaction details.</p>
+        <button type="button" id="retry-btn" class="btn-secondary">Retry Diagnosis</button>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <main id="result-section" class="result-section hidden">
+      <!-- Verdict Banner -->
+      <section class="card verdict-card" id="verdict-card">
+        <div class="verdict-header">
+          <div class="verdict-badges">
+            <span id="verdict-status-badge" class="badge-status failed">FAILED</span>
+            <span id="verdict-category-badge" class="badge-category">SLIPPAGE EXCEEDED</span>
+            <span id="verdict-confidence-badge" class="badge-confidence">CONFIDENCE: HIGH</span>
+          </div>
+          <div class="verdict-links">
+            <a id="explorer-link" href="#" target="_blank" rel="noopener noreferrer" class="link-explorer">
+              View on PharosScan ↗
+            </a>
+          </div>
+        </div>
+
+        <h2 id="verdict-summary" class="verdict-summary">
+          Swap transaction failed due to price slippage protection.
+        </h2>
+
+        <div class="explanation-box">
+          <div class="box-title">
+            <span class="icon">💬</span>
+            <span>Plain-English Explanation (No Jargon)</span>
+          </div>
+          <p id="plain-explanation" class="explanation-text"></p>
+        </div>
+
+        <div class="resolution-box">
+          <div class="box-title">
+            <span class="icon">🛠️</span>
+            <span>Actionable Resolution Steps</span>
+          </div>
+          <ul id="resolution-steps" class="steps-list"></ul>
+        </div>
+
+        <div id="preventative-box" class="preventative-box">
+          <div class="box-title">
+            <span class="icon">🛡️</span>
+            <span>How to Prevent This in the Future</span>
+          </div>
+          <ul id="preventative-steps" class="steps-list"></ul>
+        </div>
+
+        <div id="uncertainty-box" class="uncertainty-box hidden">
+          <div class="box-title">
+            <span class="icon">ℹ️</span>
+            <span>Forensic Uncertainty & Missing Evidence</span>
+          </div>
+          <ul id="uncertainty-notes" class="steps-list"></ul>
+        </div>
+      </section>
+
+      <!-- Forensic Technical Details Grid -->
+      <section class="card forensics-card">
+        <div class="card-header">
+          <h3>On-Chain Execution Forensics</h3>
+          <span class="source-tag">Source: Official Chain MCP (mcp.pharos.xyz)</span>
+        </div>
+
+        <div class="forensics-grid">
+          <div class="forensic-item">
+            <span class="item-label">Transaction Hash</span>
+            <span id="forensic-hash" class="item-value mono copyable"></span>
+          </div>
+
+          <div class="forensic-item">
+            <span class="item-label">Network & Chain ID</span>
+            <span id="forensic-network" class="item-value"></span>
+          </div>
+
+          <div class="forensic-item">
+            <span class="item-label">Block Number & Time</span>
+            <span id="forensic-block" class="item-value"></span>
+          </div>
+
+          <div class="forensic-item">
+            <span class="item-label">Sender Address</span>
+            <span id="forensic-from" class="item-value mono copyable"></span>
+          </div>
+
+          <div class="forensic-item">
+            <span class="item-label">Destination Address</span>
+            <span id="forensic-to" class="item-value mono copyable"></span>
+          </div>
+
+          <div class="forensic-item">
+            <span class="item-label">Transaction Value</span>
+            <span id="forensic-value" class="item-value"></span>
+          </div>
+
+          <div class="forensic-item">
+            <span class="item-label">Gas Consumed / Limit</span>
+            <div class="gas-meter-container">
+              <span id="forensic-gas" class="item-value"></span>
+              <div class="progress-bar-bg">
+                <div id="gas-progress-bar" class="progress-bar-fill"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="forensic-item">
+            <span class="item-label">Method / Function Call</span>
+            <span id="forensic-method" class="item-value mono"></span>
+          </div>
+        </div>
+
+        <!-- Decoded Revert Signature & Raw Bytes -->
+        <div class="revert-evidence-panel">
+          <div class="panel-header">
+            <h4>EVM Revert & Error Evidence</h4>
+            <span id="evidence-type-badge" class="badge-mini">Error(string)</span>
+          </div>
+          <div class="revert-evidence-content">
+            <div class="evidence-row">
+              <span class="evidence-label">Technical Reason:</span>
+              <span id="technical-reason" class="evidence-value"></span>
+            </div>
+            <div class="evidence-row">
+              <span class="evidence-label">Decoded Signature / Data:</span>
+              <span id="decoded-signature" class="evidence-value mono"></span>
+            </div>
+            <div class="evidence-row">
+              <span class="evidence-label">Raw Revert Bytes:</span>
+              <span id="raw-revert-bytes" class="evidence-value mono break-all"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <p>
+          <strong>Pharos dApp Support Agent</strong> — Built for the <strong>Pharos Agent Arena</strong>.
+        </p>
+        <p class="footer-links">
+          <a href="https://github.com/JimmyOgb/pharos-dapp-support-agent" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
+          <span>•</span>
+          <a href="https://ai.pharos.xyz" target="_blank" rel="noopener noreferrer">ai.pharos.xyz</a>
+          <span>•</span>
+          <a href="https://docs.pharos.xyz" target="_blank" rel="noopener noreferrer">Pharos Docs</a>
+          <span>•</span>
+          <a href="https://mcp.pharos.xyz/mcp" target="_blank" rel="noopener noreferrer">Pharos MCP</a>
+          <span>•</span>
+          <a href="https://pharosscan.xyz" target="_blank" rel="noopener noreferrer">PharosScan</a>
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
