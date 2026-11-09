@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Evidence-based, zero-simulation dApp Support Agent for Pharos transactions via official Chain MCP",
   "type": "module",
-  "main": "src/index.ts",
   "scripts": {
     "build": "node --experimental-strip-types src/build.ts",
     "bundle:api": "esbuild src/api/*.ts --bundle --platform=node --format=esm --outdir=api",
