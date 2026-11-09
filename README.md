@@ -6,6 +6,16 @@
 [![Pharos Chain ID](https://img.shields.io/badge/Pharos%20Chain%20ID-1672%20%7C%20688689-06b6d4)](https://docs.pharos.xyz)
 [![Node Version](https://img.shields.io/badge/Node-v24%2B-green.svg)](https://nodejs.org)
 [![Chain MCP](https://img.shields.io/badge/Chain%20MCP-mcp.pharos.xyz-purple)](https://mcp.pharos.xyz/mcp)
+[![Production URL](https://img.shields.io/badge/Vercel-pharos--dapp--support--agent.vercel.app-black?logo=vercel)](https://pharos-dapp-support-agent.vercel.app)
+
+---
+
+## Live Deployments & Links
+
+- **Production Application URL:** [https://pharos-dapp-support-agent.vercel.app](https://pharos-dapp-support-agent.vercel.app)
+- **Public GitHub Repository:** [https://github.com/JimmyOgb/pharos-dapp-support-agent](https://github.com/JimmyOgb/pharos-dapp-support-agent)
+- **Health Check Endpoint:** [https://pharos-dapp-support-agent.vercel.app/api/health](https://pharos-dapp-support-agent.vercel.app/api/health)
+- **Diagnostic API Endpoint:** `POST https://pharos-dapp-support-agent.vercel.app/api/diagnose`
 
 ---
 
